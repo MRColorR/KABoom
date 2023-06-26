@@ -1,0 +1,175 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: factorial-web
+  labels:
+    app: factorial-web
+spec:
+  selector:
+    app: factorial-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: factorial-api
+  labels:
+    app: factorial-api
+spec:
+  selector:
+    app: factorial-api
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+      nodePort: 30500
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factorial-web
+  labels:
+    app: factorial-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: factorial-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  revisionHistoryLimit: 1
+  template:
+    metadata:
+      labels:
+        app: factorial-web
+    spec:
+      containers:
+        - name: factorial-web
+          image: mrcolorrain/factorialwww:latest
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 96m
+              memory: 96Mi  
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - on-prem
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: factorial-api
+  labels:
+    app: factorial-api
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: factorial-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  revisionHistoryLimit: 1
+  template:
+    metadata:
+      labels:
+        app: factorial-api
+    spec:
+      containers:
+        - name: factorial-api
+          image: mrcolorrain/factorialapi:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: FLASK_APP
+              value: factorial.py
+          command: ["flask", "run", "--host=0.0.0.0"]
+          resources:
+            requests:
+              cpu: 96m
+              memory: 96Mi
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - on-prem
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: factorial-web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: factorial-web
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 90
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: factorial-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: factorial-api
+  minReplicas: 5
+  maxReplicas: 50
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 90

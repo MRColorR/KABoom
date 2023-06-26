@@ -1,0 +1,114 @@
+Install 2 ubuntu vm in hyper-v,
+Enable nested virtualization: Get-VM | ? State -eq 'Off' | Set-VMProcessor -ExposeVirtualizationExtensions $true
+Set the RAM to 10240MB (or 12288MB) both on the fixed and on the max limit of the dynamic RAM
+I enlarge the VMs disk to 64GB, then after the first boot complete the expansion:
+sudo fdisk /dev/sda
+Use the "p" command to view the current partition layout.
+Use the "d" command to delete the partition you want to resize.
+Use the "n" command to create a new partition with the desired size.
+Use the "w" command to write the changes to the disk.
+Run the command "sudo resize2fs /dev/sda1" to resize the ext4 filesystem to the new partition size.
+
+I update everything in the vm:
+sudo apt update && sudo apt full-upgrade -y
+
+setup static ip for the VMs, check if a desired static ip is free and in case set it as Eth1 IP address:
+arp -n <IPAddressToCheck> if no response is received then the ip should be free
+use nmtui to edit eth1
+
+(optional) I install curl and zerotier and join on a VXLAN :
+sudo apt install curl -y && curl -s https://install.zerotier.com | sudo bash
+sudo zerotier-cli join <VXLANID>
+
+I add the two machines to each other's hosts file
+sudo nano /etc/hosts and add the machine itself and its counterpart calling them devstack1 and devstack2
+
+
+I install devstack (partially following https://docs.openstack.org/devstack/latest/) using the :
+sudo useradd -s /bin/bash -d /opt/stack -m stack
+sudo chmod +x /opt/stack
+echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack
+sudo -u stack -i
+sudo apt install git -y && git clone https://opendev.org/openstack/devstack && cd ./devstack
+copy the configuration file from the examples and edit it:
+cp ./samples/local.conf . && nano local.conf
+
+setup the required informations and to make sure the instances are reachable using their floating ip from all the machine in my LAN i set up the IP and floating ranges accordingly:
+
+my config for openstack1 in local.conf
+FLAT_INTERFACE=eth1
+HOST_IP=192.168.1.111
+FLOATING_RANGE="192.168.1.112/28"
+
+ADMIN_PASSWORD=<password>
+DATABASE_PASSWORD=$ADMIN_PASSWORD
+RABBIT_PASSWORD=$ADMIN_PASSWORD
+SERVICE_PASSWORD=$ADMIN_PASSWORD
+
+
+my config for openstack2 in local.conf
+FLAT_INTERFACE=eth1
+HOST_IP=192.168.2.222
+FLOATING_RANGE="192.168.2.224/28"
+
+ADMIN_PASSWORD=<password>
+DATABASE_PASSWORD=$ADMIN_PASSWORD
+RABBIT_PASSWORD=$ADMIN_PASSWORD
+SERVICE_PASSWORD=$ADMIN_PASSWORD
+
+start the installation process using: ./stack.sh && cd ..
+
+Once started I load the image for the vm on which we will then run k8s, I have a script to speed everything up called myprepare.sh take the other info from there intermediate steps. at the end you should have 2 vm with Debian (genericCloud) that can talk to internet.
+
+From the root of the stack folder (out of devstack folder) use:
+git clone https://github.com/MRColorR/onehundredten && cp ./onehundredten/openstack/myprepare.sh . && sudo chmod +x myprepare.sh && ./myprepare.sh
+
+now the two vms will be up, able to go out on the internet and you can connect to ssh
+
+as on the ubuntu machine the ip_forward is already enabled (as you can see using: less /proc/sys/net/ipv4/ip_forward) but the proxy_arp is not we need to enable this to make the instances reachable from the other machines in the same lan:
+sudo bash
+echo 1 > /proc/sys/net/ipv4/ip_forward
+echo 1 > /proc/sys/net/ipv4/conf/eth1/proxy_arp
+iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE 
+
+to show them and find the floating ips assigned to each vm use issue the following command:
+source ./devstack/openrc admin admin
+openstack server list
+
+now using ping check that openstack1 and its instances can reach openstack2 and its instances (they can)
+
+you can ping them from each other and also any website by name (eg. google.com) or ip to check networking
+
+now proceed installing k3s on the master node making it advertise its floating ip so it could work in hybrid multi cloud environments.Then make the worker join the cluster
+sudo apt install curl -y && curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--node-external-ip <masterFloatingIP> --flannel-external-ip" sh -
+after this , check if the master node of the cluster is up and running using:
+sudo kubectl get nodes
+check also the metric server status using:
+sudo kubectl get deployment,pods -n kube-system | grep metrics-server
+or
+sudo kubectl top nodes
+ 
+Now to get from the master node the token that will allow us to add the other worker nodes run:
+sudo cat /var/lib/rancher/k3s/server/node-token
+
+to chek if the candidate node can get the certificate on the master using the 6443 port use: curl -vk https://<masterFloatingIP>/cacerts
+
+now ssh again in the worker node on the same openstack and install the k3s agent passing the master's ip and the token
+sudo apt install curl -y && curl -sfL https://get.k3s.io | K3S_URL=https://<masterFloatingIP>:6443 K3S_TOKEN="token" INSTALL_K3S_EXEC="--node-external-ip <workerFloatingIP>" sh -
+(also you ca do it after installing the entire k3s using sudo k3s agent -t <token> --server https://<masterFloatingIP>:6443 --node-external-ip <workerFloatingIP>
+)
+
+Add labels to each node:
+sudo kubectl label nodes master1a worker1a node-type=on-prem
+sudo kubectl label nodes worker2b worker2b1 node-type=burst
+
+Now repeats the steps to create a second openstack cloud that will simulate another cloud used during an overload to cloud burst the cluster replicas.
+
+after the instances inside openstack2, we're ready to make them join the cluster as workers
+now use the same <masterFloatingIP> used earlier to check if the instance inside (e.g. named worker1b) openstack2 can get the certificate from the instance (e.g. master1a) inside openstack1 , it can good
+ 
+
+to check packets use wireshark with filter ip.addr == 192.168.1.126 or ip.addr == 172.16.1.137 or ip.addr == 192.168.1.125 or ip.addr == 172.16.1.239 or ip.addr == 192.168.2.226 or ip.addr == 172.16.2.122 or ip.addr == 192.168.2.231 or ip.addr == 172.16.2.218
+
+
+

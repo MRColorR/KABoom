@@ -4,4 +4,5 @@
 #docker run --name abeweb_nightly -p 8001:8000 -d abe-webapp
 
 docker build -t mrcolorrain/kaboom:nightly .\abe-webapp\ --no-cache
-docker run --name kaboom_abeweb_nightly -p 8001:8000 -d mrcolorrain/kaboom:nightly
+#docker run --name kaboom_abeweb_nightly -p 8001:8000 -d mrcolorrain/kaboom:nightly
+docker run --name kaboom_abeweb_nightly -v kaboom_storage_nightly:/app/src/storage -p 8001:8000 -d mrcolorrain/kaboom:nightly

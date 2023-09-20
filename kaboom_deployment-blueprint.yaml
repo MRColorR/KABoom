@@ -50,8 +50,8 @@ spec:
             periodSeconds: 5
           resources:
             requests:
-              cpu: 96m
-              memory: 96Mi  
+              cpu: 100m
+              memory: 100Mi  
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -74,7 +74,7 @@ spec:
     kind: Deployment
     name: kaboom
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 50
   metrics:
     - type: Resource
       resource:

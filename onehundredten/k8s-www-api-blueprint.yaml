@@ -162,7 +162,7 @@ spec:
     kind: Deployment
     name: factorial-api
   minReplicas: 5
-  maxReplicas: 50
+  maxReplicas: 40
   metrics:
     - type: Resource
       resource:

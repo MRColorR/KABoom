@@ -74,7 +74,7 @@ spec:
     kind: Deployment
     name: kaboom
   minReplicas: 1
-  maxReplicas: 50
+  maxReplicas: 30
   metrics:
     - type: Resource
       resource:

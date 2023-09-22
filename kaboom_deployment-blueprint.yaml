@@ -61,7 +61,7 @@ spec:
               - key: node-type
                 operator: In
                 values:
-                - on-prem
+                - a
 
 ---
 apiVersion: autoscaling/v2

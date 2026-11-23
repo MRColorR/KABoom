@@ -8,9 +8,13 @@
 
 [**🚀 Explore the prototype**](#getting-started) · [📚 Documentation](#documentation) · [🫶 Support](#support)
 
-**Leave a star ⭐ if you like this project 🙂 Thank you!**
+<p align="center">
+  <strong>Leave a star ⭐ if you like this project 🙂 Thank you!</strong>
+</p>
 
-## Overview
+<a name="overview"></a>
+
+## 🔍 Overview
 
 KABoom is a project that leverages Kubernetes and an attribute-based approach to optimize the process of cloud bursting, ensuring efficient resource management and enhanced security in cloud environments. This project is based on [onehundreten](https://github.com/MRColorR/onehundredten)` by @MRColorR  and [abe-webapp](https://github.com/martinapalmucci/abe-webapp) by @martinapalmucci .
 
@@ -36,13 +40,17 @@ The main objectives of KABoom are:
 2. To address the security aspects of cloud bursting.
 3. To provide an architectural solution to enable a more integrated and effective deployment security solution for cloud bursting based on the Kubernetes orchestration.
 
-## Getting started
+<a name="getting-started"></a>
+
+## 🚥 Getting started
 
 <a name="-getting-started"></a>
 
 Detailed instructions on how to install, use, and contribute to the project will be added soon. 
 
-## Documentation
+<a name="documentation"></a>
+
+## 📚 Documentation
 
 <a name="-contact"></a>
 
@@ -50,13 +58,17 @@ Detailed instructions on how to install, use, and contribute to the project will
 
 For any questions or feedback related to this project, feel free to reach out to us.
 
-## Contributing
+<a name="contributing"></a>
+
+## 🤝 Contributing
 
 Ideas, bug reports, documentation fixes and focused changes are welcome through this repository's collaboration channels.
 
 Please include enough context to reproduce a problem or review a change.
 
-## Support
+<a name="support"></a>
+
+## 🫶 Support
 
 **🫶 Support the project**
 
@@ -66,7 +78,9 @@ Your contributions are vital in helping to sustain the development of open-sourc
 
 Thank you for helping me keep building and sharing! 🙏 See the [supporter directory](https://github.com/MRColorR/MRColorR/blob/main/SUPPORTERS.md).
 
-## License
+<a name="license"></a>
+
+## 📄 License
 
 <a name="-license"></a>
 
